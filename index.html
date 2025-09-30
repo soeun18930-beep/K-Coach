@@ -12,119 +12,243 @@
     .row{display:flex;gap:12px;flex-wrap:wrap}
     .btn{padding:10px 14px;border:1px solid #ddd;border-radius:10px;background:#fafafa;cursor:pointer}
     select,input{padding:10px;border:1px solid #ddd;border-radius:8px}
-    footer{padding:24px 20px;color:#666}
+    .muted{color:#666}
+    .ok{background:#e6ffe9;border:1px solid #b6f3c3}
+    .bad{background:#ffe9e9;border:1px solid #ffb3b3}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;border-bottom:1px solid #eee;text-align:left}
   </style>
 </head>
 <body>
 <header>
   <div class="wrap">
     <h1 style="margin:0;">K-COACH (웹 MVP)</h1>
-    <p style="margin:6px 0 0;">대화형 안전·환경 코치 – 우선 웹사이트 뼈대</p>
+    <p style="margin:6px 0 0;">대화형 안전·환경 코치 – 브라우저 TTS/STT + 기록</p>
   </div>
 </header>
 
 <main class="wrap">
+  <!-- 1) 회사/사업장/구역 (데모용 · 선택사항) -->
   <div class="card">
-    <h2>1) 회사/사업장 선택</h2>
+    <h2>1) 회사/사업장/구역</h2>
     <div class="row">
-      <select>
-        <option>회사 선택</option>
-        <option>회사 A</option>
-        <option>회사 B</option>
+      <select id="company">
+        <option value="">회사 선택</option>
+        <option>A사</option><option>B사</option>
       </select>
-      <select>
-        <option>사업장 선택</option>
-        <option>A-1 공장</option>
-        <option>B-1 현장</option>
+      <select id="site">
+        <option value="">사업장 선택</option>
+        <option>A-1 공장</option><option>B-1 현장</option>
       </select>
-      <select>
-        <option>구역 선택</option>
-        <option>밀폐공간</option>
-        <option>고온작업장</option>
+      <select id="zone">
+        <option value="">구역 선택</option>
+        <option>밀폐공간</option><option>고온작업장</option>
       </select>
     </div>
-    <p style="color:#666;">※ 지금은 선택 UI만. 나중에 데이터/AI 연결 예정</p>
+    <p class="muted">※ 시연용 메타데이터(기록 저장 시 함께 저장)</p>
   </div>
 
+  <!-- 2) 역할 -->
   <div class="card">
-    <h2>2) 역할 선택</h2>
+    <h2>2) 역할</h2>
     <div class="row">
-      <label><input type="radio" name="role"> 근로자</label>
-      <label><input type="radio" name="role"> 감독관</label>
+      <label><input type="radio" name="role" value="worker" checked> 근로자</label>
+      <label><input type="radio" name="role" value="supervisor"> 감독관</label>
     </div>
   </div>
 
+  <!-- 3) 학습 -->
   <div class="card">
-    <h2>3) 학습 영역</h2>
-    <p>이 영역에 나중에 “질문 보기 / 시작 버튼 / 결과 요약” 등을 붙일 예정.</p>
-    <button class="btn">학습 시작 (UI만)</button>
+    <h2>3) 학습</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn" id="startBtn">질문 불러오기</button>
+      <button class="btn" id="askBtn">질문 듣기(TTS)</button>
+      <button class="btn" id="speakBtn">🎤 대답하기(STT)</button>
+      <button class="btn" id="checkBtn">채점</button>
+      <button class="btn" id="nextBtn">다음</button>
+    </div>
+
+    <div id="status" class="muted" style="margin-bottom:8px;">questions.json을 불러와 시작하세요.</div>
+    <div id="qBox" style="font-weight:700;min-height:40px">—</div>
+    <div class="card" style="margin-top:12px">
+      인식된 답변: <span id="ansText" class="muted">대기 중</span>
+    </div>
+    <div id="feedback" class="card muted" style="margin-top:8px">피드백</div>
+
+    <div class="row" style="margin-top:10px">
+      <div class="pill">점수: <span id="scoreSpan">0</span>/<span id="totalSpan">0</span></div>
+    </div>
+    <p class="muted" style="margin-top:8px">※ 크롬 권장(브라우저 STT). Safari는 제한될 수 있어요.</p>
   </div>
 
+  <!-- 4) 관리자 기록 -->
   <div class="card">
-    <h2>공지/도입 포인트</h2>
+    <h2>4) 관리자 기록 (로컬 저장)</h2>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn" id="saveBtn">결과 저장</button>
+      <button class="btn" id="viewBtn">기록 보기</button>
+      <button class="btn" id="clearBtn">기록 삭제</button>
+    </div>
+    <div id="logBox" class="muted">기록이 없습니다.</div>
+  </div>
+
+  <!-- 5) 도입 포인트 -->
+  <div class="card">
+    <h2>도입 포인트</h2>
     <ul>
-      <li>양방향 학습으로 교육 효과 강화</li>
-      <li>반복 훈련으로 사전 예방 강화</li>
-      <li>관리자 확인/보충학습(추가 예정)</li>
-      <li>빠른 도입 & 저비용</li>
-      <li>제조/건설 등 전 산업 확장</li>
+      <li>말해야 배우는 양방향 학습 → 실제 대응 절차 체화</li>
+      <li>반복 훈련으로 중대재해 예방 역량 강화</li>
+      <li>관리자: 취약 항목 확인·보충학습 설계</li>
+      <li>스마트폰/브라우저로 즉시 도입, 비용 절감</li>
+      <li>제조·건설 등 다양한 현장 적용</li>
     </ul>
   </div>
 </main>
 
 <footer>
-  <body>
-  <header class="wrap">
-    <h1>K-COACH (웹 MVP)</h1>
-    <p>대화형 안전·환경 코치 – 음성 기반 학습</p>
-  </header>
-
-  <main class="wrap">
-    <button onclick="loadQuestions()">학습 시작</button>
-    <div id="question-area"></div>
-    <button id="speakBtn">🎤 대답하기</button>
-    <div id="result"></div>
-  </main>
-
-  <script>
-    let questions = [];
-    let currentQ = 0;
-
-    async function loadQuestions() {
-      const res = await fetch('questions.json');
-      questions = await res.json();
-      showQuestion();
-    }
-
-    function showQuestion() {
-      const q = questions[0].questions[currentQ];
-      document.getElementById('question-area').innerHTML =
-        `<h3>${q.ask}</h3>`;
-    }
-
-    // 음성 인식 API (브라우저 내장 Web Speech API)
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'ko-KR';
-
-    document.getElementById('speakBtn').addEventListener('click', () => {
-      recognition.start();
-    });
-
-    recognition.onresult = (event) => {
-      const answer = event.results[0][0].transcript;
-      checkAnswer(answer);
-    };
-
-    function checkAnswer(answer) {
-      const q = questions[0].questions[currentQ];
-      let correct = q.keywords_any.some(k => answer.includes(k));
-      document.getElementById('result').innerText =
-        correct ? "✅ 정답입니다!" : "❌ 다시 시도하세요.";
-    }
-  </script>
-</body>
-
-  <div class="wrap">© 2025 K-COACH MVP</div>
+  <div class="wrap muted">© 2025 K-COACH MVP</div>
 </footer>
+
+<script>
+  // ===== 상태 =====
+  let data = null;            // questions.json 전체
+  let scenario = null;        // 현재 시나리오 (첫 시나리오 사용)
+  let qi = 0;                 // 현재 문항 index
+  let total = 0;              // 총 문항 수
+  let score = 0;              // 점수
+  let heard = "";             // 인식된 답변
+  let answered = false;       // 현재 문항 채점 완료 여부(중복 가산 방지)
+
+  const $ = (id)=>document.getElementById(id);
+  const roleEl = ()=>document.querySelector('input[name="role"]:checked')?.value || 'worker';
+  const norm = s => (s||'').toLowerCase().replace(/[^가-힣a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+
+  // ===== TTS =====
+  function speak(text){
+    if(!('speechSynthesis' in window)){ alert('이 브라우저는 TTS를 지원하지 않습니다.'); return; }
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang='ko-KR'; u.rate=1; u.pitch=1;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }
+
+  // ===== STT =====
+  function startSTT(){
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SR){ alert('Chrome에서 시험해 주세요(브라우저 STT).'); return; }
+    const rec = new SR();
+    rec.lang='ko-KR'; rec.interimResults=false; rec.maxAlternatives=1;
+    heard=''; $('ansText').textContent='듣는 중…';
+    rec.onresult = e => { heard = e.results[0][0].transcript || ''; $('ansText').textContent = heard; };
+    rec.onerror  = ()=> { $('ansText').textContent='인식 실패. 다시 시도하세요.'; };
+    rec.start();
+  }
+
+  // ===== 데이터 로드 & 렌더 =====
+  async function loadQuestions(){
+    $('status').textContent='불러오는 중…';
+    const res = await fetch('questions.json');
+    data = await res.json();              // {scenarios:[...]}
+    scenario = data.scenarios[0];         // 첫 시나리오
+    qi = 0; score = 0; answered = false;
+    total = scenario.questions.length;
+    $('totalSpan').textContent = total;
+    $('scoreSpan').textContent = score;
+    $('status').textContent='시작되었습니다.';
+    render();
+  }
+
+  function render(){
+    if(!scenario) return;
+    const q = scenario.questions[qi];
+    $('qBox').textContent = `Q${qi+1}. ${q.ask}`;
+    $('ansText').textContent = '대기 중';
+    $('feedback').className = 'card muted';
+    $('feedback').textContent = '피드백';
+    answered = false;
+  }
+
+  // ===== 채점 =====
+  function check(){
+    if(!scenario) return;
+    const q = scenario.questions[qi];
+    const t = norm(heard);
+    const anyOk = (q.keywords_any||[]).length===0 || (q.keywords_any||[]).some(kw => t.includes(norm(kw)));
+    const allOk = (q.keywords_all||[]).every(kw => t.includes(norm(kw)));
+    const ok = anyOk && allOk;
+
+    $('feedback').textContent = ok ? '✅ 정답입니다! 잘하셨습니다.' : `❌ 오답입니다. 힌트: ${q.hint}`;
+    $('feedback').className = ok ? 'card ok' : 'card bad';
+
+    if(ok && !answered){ score++; $('scoreSpan').textContent = score; answered = true; }
+  }
+
+  // ===== 다음 문항 =====
+  function nextQ(){
+    if(!scenario) return;
+    if(qi+1 < scenario.questions.length){ qi++; render(); }
+    else { speak(`교육이 완료되었습니다. 점수는 ${score}점, 총 ${total}문항입니다.`); }
+  }
+
+  // ===== 관리자 기록 (localStorage) =====
+  function saveResult(){
+    if(!scenario) return alert('먼저 학습을 진행하세요.');
+    const key = 'kcoach_results';
+    const entry = {
+      ts: new Date().toISOString(),
+      company: $('company').value || '-',
+      site: $('site').value || '-',
+      zone: $('zone').value || '-',
+      role: roleEl(),
+      scenarioId: scenario.id,
+      scenarioTitle: scenario.title,
+      score, total
+    };
+    const arr = JSON.parse(localStorage.getItem(key) || '[]');
+    arr.push(entry);
+    localStorage.setItem(key, JSON.stringify(arr));
+    alert('결과가 저장되었습니다.(로컬)');
+  }
+
+  function viewLog(){
+    const arr = JSON.parse(localStorage.getItem('kcoach_results') || '[]').reverse();
+    if(arr.length===0){ $('logBox').textContent='기록이 없습니다.'; return; }
+    const rows = arr.map(r=>`
+      <tr>
+        <td>${new Date(r.ts).toLocaleString()}</td>
+        <td>${r.company}/${r.site}/${r.zone}</td>
+        <td>${r.scenarioTitle}</td>
+        <td>${r.score} / ${r.total}</td>
+        <td>${r.role}</td>
+      </tr>`).join('');
+    $('logBox').innerHTML = `
+      <table>
+        <tr>
+          <th>시간</th><th>회사/사업장/구역</th><th>시나리오</th><th>점수</th><th>역할</th>
+        </tr>${rows}
+      </table>`;
+  }
+
+  function clearLog(){
+    if(confirm('로컬에 저장된 모든 기록을 삭제할까요?')){
+      localStorage.removeItem('kcoach_results');
+      $('logBox').textContent='기록이 없습니다.';
+    }
+  }
+
+  // ===== 버튼 연결 =====
+  window.addEventListener('DOMContentLoaded', ()=>{
+    $('startBtn').onclick = loadQuestions;
+    $('askBtn').onclick   = ()=> scenario && speak(scenario.questions[qi].ask);
+    $('speakBtn').onclick = startSTT;
+    $('checkBtn').onclick = check;
+    $('nextBtn').onclick  = nextQ;
+
+    $('saveBtn').onclick  = saveResult;
+    $('viewBtn').onclick  = viewLog;
+    $('clearBtn').onclick = clearLog;
+  });
+</script>
 </body>
 </html>
+
+
