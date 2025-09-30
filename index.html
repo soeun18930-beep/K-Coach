@@ -73,6 +73,57 @@
 </main>
 
 <footer>
+  <body>
+  <header class="wrap">
+    <h1>K-COACH (웹 MVP)</h1>
+    <p>대화형 안전·환경 코치 – 음성 기반 학습</p>
+  </header>
+
+  <main class="wrap">
+    <button onclick="loadQuestions()">학습 시작</button>
+    <div id="question-area"></div>
+    <button id="speakBtn">🎤 대답하기</button>
+    <div id="result"></div>
+  </main>
+
+  <script>
+    let questions = [];
+    let currentQ = 0;
+
+    async function loadQuestions() {
+      const res = await fetch('questions.json');
+      questions = await res.json();
+      showQuestion();
+    }
+
+    function showQuestion() {
+      const q = questions[0].questions[currentQ];
+      document.getElementById('question-area').innerHTML =
+        `<h3>${q.ask}</h3>`;
+    }
+
+    // 음성 인식 API (브라우저 내장 Web Speech API)
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'ko-KR';
+
+    document.getElementById('speakBtn').addEventListener('click', () => {
+      recognition.start();
+    });
+
+    recognition.onresult = (event) => {
+      const answer = event.results[0][0].transcript;
+      checkAnswer(answer);
+    };
+
+    function checkAnswer(answer) {
+      const q = questions[0].questions[currentQ];
+      let correct = q.keywords_any.some(k => answer.includes(k));
+      document.getElementById('result').innerText =
+        correct ? "✅ 정답입니다!" : "❌ 다시 시도하세요.";
+    }
+  </script>
+</body>
+
   <div class="wrap">© 2025 K-COACH MVP</div>
 </footer>
 </body>
